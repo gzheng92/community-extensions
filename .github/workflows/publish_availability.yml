@@ -1,0 +1,35 @@
+#
+# Publish availability.json: which DuckDB versions and platforms each community
+# extension has a binary for. Consumed by duckdb-web's community extension docs sync.
+#
+
+name: Publish Availability
+on:
+  schedule:
+    # 30 minutes before duckdb-web's community extension docs sync (0 */6 * * *)
+    - cron: '30 5-23/6 * * *'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  publish:
+    name: Publish availability.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate and upload
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DUCKDB_COMMUNITY_EXTENSION_S3_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DUCKDB_COMMUNITY_EXTENSION_S3_SECRET }}
+          AWS_ENDPOINT_URL: ${{ secrets.DUCKDB_COMMUNITY_EXTENSION_S3_ENDPOINT }}
+          BUCKET_NAME: duckdb-community-extensions
+          PIP_BREAK_SYSTEM_PACKAGES: 1
+        run: |
+          python3 -m pip install awscli
+          python3 scripts/generate_availability.py --output build/availability.json
+          aws s3 cp build/availability.json "s3://$BUCKET_NAME/availability.json" \
+            --acl public-read \
+            --content-type application/json \
+            --cache-control "public, max-age=300"
