@@ -39,6 +39,7 @@ PLATFORM_ORDER = [
     "wasm_threads",
 ]
 
+
 KEY_PATTERN = re.compile(
     r"^(v\d+\.\d+\.\d+)/([a-z0-9_]+)/([A-Za-z0-9_]+)\.duckdb_extension\.(gz|wasm)$"
 )
@@ -48,15 +49,14 @@ def list_bucket_keys():
     result = subprocess.run(
         ["aws", "s3", "ls", f"s3://{BUCKET}/", "--recursive"],
         check=True,
-        capture_output=True,
+        sdtout=subprocess.PIPE,
         text=True,
     )
     return result.stdout.splitlines()
 
 
 def parse_key(line):
-    # `aws s3 ls` lines look like "2024-06-03 12:00:00   123456 v1.0.0/osx_arm64/x.duckdb_extension.gz";
-    # the key is the last field (keys never contain spaces).
+    # gets last token from "2024-06-03 12:00:00   123456 v1.0.0/osx_arm64/x.duckdb_extension.gz";
     fields = line.split()
     if not fields:
         return None
@@ -108,6 +108,7 @@ def build_availability(lines):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
+    # for testing locally
     parser.add_argument(
         "--from-file", help="read keys from a file instead of listing the bucket"
     )
